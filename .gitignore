@@ -3,6 +3,7 @@
 *.csv
 # unles in docs
 !docs/*.html
+!data/**/*.csv
 
 # History files
 .Rhistory
