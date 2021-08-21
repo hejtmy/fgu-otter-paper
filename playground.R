@@ -3,6 +3,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(stringr)
+source("functions/visualisations.R")
 
 anim_arena <- load_data("data/OTTER_raw_runs 43_44_final_normative_data/arena size_contextB.CSV")
 anim_dead <- load_data("data/OTTER_raw_runs 43_44_final_normative_data/blue_box_freezing_imtation of dead animal.CSV")
@@ -59,6 +60,7 @@ for(i in 1:nrow(df_request)){
 
 session_results(all_data$hab1_all)
 
+## Coding tables ----
 codingtables <- list()
 for(foldercode in names(all_data)){
   if("codingtable" %in% names(all_data[[foldercode]])){
@@ -80,8 +82,6 @@ for(foldercode in names(all_data)){
   codingtables[[foldercode]]$codingtable <- codingtable
 }
 
-
-
 ## INDIVIDUAL results ----
 df_individual_results <- data.frame()
 for(i in 1:nrow(df_request)){
@@ -92,14 +92,17 @@ for(i in 1:nrow(df_request)){
     left_join(df_files, by=c("folder", "file")) %>%
     select(-c(source, folder, file))
   df_individual_results <- rbind(df_individual_results, out)
+
 }
 
 df_individual_results
 
-## Graphs ------
+# Plot ALL individual graphs
+
+
 
 for(i in 1:nrow(df_request)){
-  line <- df_request[i,]
+  line <- df_request[i, ]
   temp <- codingtables$hab1_all$codingtable %>%
     left_join(df_files, by=c("folder", "file")) %>%
     select(-c(source, folder, file))
@@ -111,4 +114,6 @@ for(i in 1:nrow(df_request)){
   print(paper_heatmap(contextB, "B") + ggtitle(line$code, subtitle = "Context B"))
 }
 
-plot_area_presence(contextA)
+plot_area_presence(contextA, scale = 100, colors = c("blue", "yellow")) +
+  theme(legend.position = c(0.9, 1.25))
+plot_area_presence(contextB, scale = 100) + theme(legend.position = c(0.9, 1.25))

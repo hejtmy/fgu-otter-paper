@@ -9,6 +9,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(stringr)
+source("functions/visualisations.R")
 
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -50,13 +51,15 @@ for(i in 1:nrow(df_request)){
   dat <- load_folder(line$folder)
   all_data[[line$code]] <- dat
 }
-
 ```
 
 ```{r coding tables}
+codingtables <- list()
 for(foldercode in names(all_data)){
+  if("codingtable" %in% names(all_data[[foldercode]])){
+    all_data[[foldercode]]$codingtable <- NULL
+  }
   dat <- all_data[[foldercode]]
-  if("codingtable" %in% names(dat)) dat$codingtable <- NULL
   out <- sapply(names(dat), function(x){return(list(animalcode = x,
                                              source = dat[[x]]$filepath))},
               simplify = FALSE, USE.NAMES = TRUE)
@@ -67,15 +70,13 @@ for(foldercode in names(all_data)){
   colnames(codingtable) <- c("animal", "source")
   codingtable <- codingtable %>%
     mutate(source = gsub(data_pth, "", source)) %>%
-    separate(source, into = c("trail", "folder", "file"), sep = "/", remove = FALSE)
-  all_data[[foldercode]]$codingtable <- codingtable
-                                                  
+    separate(source, into = c("trail", "folder", "file"), sep = "/", remove = FALSE) %>%
+    select(-trail)
+  codingtables[[foldercode]]$codingtable <- codingtable
 }
-
 ```
 
-```{r}
-
+```{r, eval = FALSE}
 ## 
 anim_folder1 <- load_folder(df_request[1, "folder"])
 names(anim_folder1)
@@ -96,7 +97,7 @@ create_heatmap(anim_folder1)
 df_individual_results <- data.frame()
 for(i in 1:nrow(df_request)){
   line <- df_request[i,]
-  if(line$individual_analysis) next
+  if(!line$individual_analysis) next
   out <- session_results(all_data[[line$code]]) %>%
     left_join(codingtables[[line$code]]$codingtable, by="animal") %>%
     left_join(df_files, by=c("folder", "file")) %>%
@@ -107,12 +108,34 @@ for(i in 1:nrow(df_request)){
 write.csv(df_individual_results, "individual-results.csv", row.names = FALSE)
 ```
 
+
+```{r}
+for(i in 1:nrow(df_request)){
+  ## Graphs of paths
+  line <- df_request[i, ]
+  if(!line$individual_analysis) next
+  animals <- all_data[[line$code]]
+  temp <- codingtables[[line$code]]$codingtable %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  for(animal in names(animals)){
+    animal_source <- temp[temp$animal.x == animal, ]
+    print(plot_path(animals[[animal]], center = TRUE,
+              background = apparatus_image_path(darkside = "left")) + 
+            ggtitle(line$code, subtitle = paste0("rat ", animal_source$animal.y, 
+                                                 ", context ", animal_source$context,
+                                                 ", run ", animal_source$run)))
+  }
+}
+```
+
 ## Graphs
 
 ```{r}
 for(i in 1:nrow(df_request)){
   line <- df_request[i,]
-  temp <- codingtables$hab1_all$codingtable %>%
+  if(line$individual_analysis) next
+  temp <- codingtables[[line$code]]$codingtable %>%
     left_join(df_files, by=c("folder", "file")) %>%
     select(-c(source, folder, file))
   
@@ -121,5 +144,12 @@ for(i in 1:nrow(df_request)){
 
   print(paper_heatmap(contextA, "A") + ggtitle(line$code, subtitle = "Context A"))
   print(paper_heatmap(contextB, "B") + ggtitle(line$code, subtitle = "Context B"))
+  
+  print(plot_area_presence(contextA, scale = 100, colors = c("blue", "yellow")) +
+          guides(fill="none") + 
+          ggtitle(line$code, subtitle = "Context A"))
+  print(plot_area_presence(contextB, scale = 100, colors = c("blue", "yellow")) +
+          guides(fill="none") + 
+          ggtitle(line$code, subtitle = "Context B"))
 }
 ```
