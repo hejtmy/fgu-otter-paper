@@ -86,7 +86,6 @@ collect_crosses(anim_folder1$animal_1)
 
 collect_crosses(anim_folder1)
 create_heatmap(anim_folder1)
-
 ```
 
 
@@ -133,7 +132,7 @@ for(i in 1:nrow(df_request)){
 
 ```{r}
 for(i in 1:nrow(df_request)){
-  line <- df_request[i,]
+  line <- df_request[i, ]
   if(line$individual_analysis) next
   temp <- codingtables[[line$code]]$codingtable %>%
     left_join(df_files, by=c("folder", "file")) %>%
@@ -145,11 +144,15 @@ for(i in 1:nrow(df_request)){
   print(paper_heatmap(contextA, "A") + ggtitle(line$code, subtitle = "Context A"))
   print(paper_heatmap(contextB, "B") + ggtitle(line$code, subtitle = "Context B"))
   
-  print(plot_area_presence(contextA, scale = 100, colors = c("blue", "yellow")) +
-          guides(fill="none") + 
+  duration <- max(contextA[[1]]$position$data$timestamp)
+  # weird shit - basically I want duration 1000 to have scale 25 and duration
+  # 3000 to have 75
+  scal <- round(25 * (duration)/1000)
+  print(plot_area_presence(contextA, scale = scal, colors = c("grey20", "grey60")) +
+          guides(fill="none") +
           ggtitle(line$code, subtitle = "Context A"))
-  print(plot_area_presence(contextB, scale = 100, colors = c("blue", "yellow")) +
-          guides(fill="none") + 
+  print(plot_area_presence(contextB, scale = scal, colors = c("grey20", "grey60")) +
+          guides(fill="none") +
           ggtitle(line$code, subtitle = "Context B"))
 }
 ```
