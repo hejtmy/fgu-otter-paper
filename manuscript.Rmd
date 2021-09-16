@@ -76,7 +76,7 @@ for(foldercode in names(all_data)){
 }
 ```
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, fig.width=10, fig.height=10}
 ## 
 anim_folder1 <- load_folder(df_request[1, "folder"])
 names(anim_folder1)
@@ -86,6 +86,7 @@ collect_crosses(anim_folder1$animal_1)
 
 collect_crosses(anim_folder1)
 create_heatmap(anim_folder1)
+paper_heatmap(anim_folder1, "A")
 ```
 
 
@@ -108,8 +109,9 @@ write.csv(df_individual_results, "individual-results.csv", row.names = FALSE)
 ```
 
 
-```{r}
-for(i in 1:nrow(df_request)){
+```{r, fig.width=5, fig.height=5}
+#for(i in 1:nrow(df_request)){
+for(i in 1:1){
   ## Graphs of paths
   line <- df_request[i, ]
   if(!line$individual_analysis) next

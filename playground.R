@@ -98,9 +98,6 @@ for(i in 1:nrow(df_request)){
 df_individual_results
 
 # Plot ALL individual graphs
-
-
-
 for(i in 1:nrow(df_request)){
   line <- df_request[i, ]
   temp <- codingtables$hab1_all$codingtable %>%
