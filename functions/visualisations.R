@@ -1,8 +1,9 @@
-BOX_CONTEXT_A <- list(x = c(10, 410), y = c(80, 340))
+BOX_CONTEXT_A <- list(x = c(0, 420), y = c(0, 420))
 BOX_CONTEXT_B <- list(x = c(0, 420), y = c(0, 420))
 
 paper_heatmap <- function(data, arena){
   box <- ifelse(arena == "A", BOX_CONTEXT_A, BOX_CONTEXT_B)
+  box <- BOX_CONTEXT_A
   obj <- combine_all(data)
   plt <- ggplot() +
     stat_density_2d(
@@ -12,11 +13,11 @@ paper_heatmap <- function(data, arena){
       contour = FALSE
     ) +
     gradient_style() +
-    #lims(x = box$x, y = box$y) +
+    lims(x = box$x, y = box$y) +
     coord_fixed(xlim = box$x, ylim = box$y) +
     theme_bw() +
     heatmap_theme() +
-    labs(x = "",y = "") +
+    labs(x = "", y = "") +
     guides(fill = "none") +
     #geom_point(data = obj$position$data, mapping = aes(position_x, position_y)) +
     #geom_box_room() +
