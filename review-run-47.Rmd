@@ -1,0 +1,130 @@
+---
+title: "review-run-47"
+author: "Lukáš Hejtmánek"
+date: "27 3 2022"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+library(fgu.avoidance)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(stringr)
+source("functions/visualisations.R")
+
+knitr::opts_chunk$set(echo = TRUE)
+
+data_pth <- "data/reveiw_run47/"
+folders <- list.dirs(data_pth, full.names = FALSE, recursive = FALSE)
+
+files <- list.files(data_pth, recursive = TRUE, full.names = TRUE)
+files <- files[grepl("//", files)]
+files <- gsub(data_pth, "", files)
+
+df_files <- as.data.frame(str_split(files, "/", simplify = TRUE)) %>%
+  select(-V1, folder = V2, file = V3) %>%
+  mutate(filename = gsub(".CSV", "", file)) %>%
+  separate(filename, into = c("trial", "animal", "context"),
+           sep = "_", remove = TRUE) %>%
+  mutate(animal = gsub("rat[0]*", "", animal),
+         context = gsub("context", "", context),
+         run = "47")
+```
+
+```{r loading all data}
+all_data <- list()
+for(i in 1:nrow(df_files)){
+  line <- df_files[i, ]
+  dat <- load_folder(file.path(data_pth, line$folder))
+  all_data[[line$trial]] <- dat
+}
+```
+
+```{r coding tables}
+codingtables <- list()
+for(foldercode in names(all_data)){
+  if("codingtable" %in% names(all_data[[foldercode]])){
+    all_data[[foldercode]]$codingtable <- NULL
+  }
+  dat <- all_data[[foldercode]]
+  out <- sapply(names(dat), function(x){return(list(animalcode = x,
+                                             source = dat[[x]]$filepath))},
+              simplify = FALSE, USE.NAMES = TRUE)
+  codingtable <- data.frame(matrix(unlist(out),
+                                    nrow = length(out),
+                                    byrow = TRUE),
+                             stringsAsFactors = FALSE)
+  colnames(codingtable) <- c("animal", "source")
+  codingtable <- codingtable %>%
+    mutate(source = gsub(data_pth, "", source)) %>%
+    separate(source, into = c("trail", "folder", "file"), sep = "/", remove = FALSE) %>%
+    select(-trail)
+  codingtables[[foldercode]]$codingtable <- codingtable
+}
+```
+
+## Data export
+
+```{r}
+## INDIVIDUAL results ----
+df_individual_results <- data.frame()
+for(code in names(all_data)){
+  out <- session_results(all_data[[code]]) %>%
+    left_join(codingtables[[code]]$codingtable, by="animal") %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  df_individual_results <- rbind(df_individual_results, out)
+}
+
+write.csv(df_individual_results, "individual-results-run47.csv", row.names = FALSE)
+```
+
+
+```{r}
+for(code in names(all_data)){
+  ## Graphs of paths
+  animals <- all_data[[code]]
+  temp <- codingtables[[code]]$codingtable %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  for(animal in names(animals)){
+    animal_source <- temp[temp$animal.x == animal, ]
+    print(plot_path(animals[[animal]], center = TRUE,
+              background = apparatus_image_path(darkside = "right")) + 
+            ggtitle(line$code, subtitle = paste0(code,
+                                                 "rat ", animal_source$animal.y,
+                                                 ", context ", animal_source$context,
+                                                 ", run ", animal_source$run)))
+  }
+}
+```
+
+## Graphs
+
+```{r}
+for(code in names(all_data)){
+  temp <- codingtables[[code]]$codingtable %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  
+  contextA <- filter_animals(all_data[[code]], temp$animal.x[temp$context == "A"])
+  contextB <- filter_animals(all_data[[code]], temp$animal.x[temp$context == "B"])
+
+  print(paper_heatmap(contextA, "A") + ggtitle(code, subtitle = "Context A"))
+  print(paper_heatmap(contextB, "B") + ggtitle(code, subtitle = "Context B"))
+  
+  duration <- max(contextA[[1]]$position$data$timestamp)
+  # weird shit - basically I want duration 1000 to have scale 25 and duration
+  # 3000 to have 75
+  scal <- round(25 * (duration)/1000)
+  if(scal < 1) scal <- 1
+  print(plot_area_presence(contextA, scale = scal, colors = c("grey60", "grey20")) +
+          guides(fill="none") +
+          ggtitle(code, subtitle = "Context A"))
+  print(plot_area_presence(contextB, scale = scal, colors = c("grey60", "grey20")) +
+          guides(fill="none") +
+          ggtitle(code, subtitle = "Context B"))
+}
+```
