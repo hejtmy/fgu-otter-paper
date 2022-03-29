@@ -105,13 +105,12 @@ for(i in 1:nrow(df_request)){
   df_individual_results <- rbind(df_individual_results, out)
 }
 
-write.csv(df_individual_results, "individual-results.csv", row.names = FALSE)
+write.csv(df_individual_results, "individual-results-run43-44.csv", row.names = FALSE)
 ```
 
 
 ```{r, fig.width=5, fig.height=5}
-#for(i in 1:nrow(df_request)){
-for(i in 1:1){
+for(i in 1:nrow(df_request)){
   ## Graphs of paths
   line <- df_request[i, ]
   if(!line$individual_analysis) next
