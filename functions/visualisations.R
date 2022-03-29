@@ -59,3 +59,13 @@ geom_box_room_local <- function(box, color = "grey20", size = 1.25,
                        ymin=box$y[1], ymax=box$y[2]),
                    color = color, size = size, fill=fill, ...))
 }
+
+flip_x_positions <- function(dat){
+  for(anim in names(dat)){
+    animal <- dat[[anim]]
+    animal$position$data$position_x <- abs(animal$position$data$position_x - 420)
+    dat[[anim]] <- animal
+  }
+  return(dat)
+}
+
