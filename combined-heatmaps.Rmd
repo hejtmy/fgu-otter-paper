@@ -34,7 +34,7 @@ df_request <- df_request %>%
 
 df_request <- df_request %>%
   filter(group == "handled",
-         grepl("hab", condition))
+         condition != "trial1") # want everything except trial 1
 
 files <- list.files(data_pth, recursive = TRUE, full.names = TRUE)
 files <- files[grepl("//", files)]
@@ -96,10 +96,10 @@ df_files47 <- as.data.frame(str_split(files, "/", simplify = TRUE)) %>%
          run = "47")
 
 df_files47 <- df_files47 %>%
-  filter(trial %in% c("hab1", "hab2", "hab3", "hab4"))
+  filter(trial %in% c("hab1", "hab2", "hab3", "hab4", "trial0"))
 
-df_folders47 <- select(df_files47, folder, trial) %>%
-  distinct()
+df_folders47 <- select(df_files47, folder, trial) %>% distinct()
+
 all_data47 <- list()
 for(i in 1:nrow(df_folders47)){
   line <- df_folders47[i, ]

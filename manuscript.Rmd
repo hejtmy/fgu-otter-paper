@@ -89,7 +89,6 @@ create_heatmap(anim_folder1)
 paper_heatmap(anim_folder1, "A")
 ```
 
-
 ## Data export
 
 ```{r}
