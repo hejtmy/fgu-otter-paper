@@ -1,0 +1,70 @@
+---
+title: "review-run-49"
+author: "Lukáš Hejtmánek"
+date: "17 6 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(here)
+library(fgu.avoidance)
+source(here("functions/visualisations.R"))
+
+knitr::opts_chunk$set(echo = FALSE)
+load(here("temp/data_run49.RData"))
+all_data <- data_run49
+codingtables <- codingtables_run49
+df_files <- df_files_run49
+rm(data_run49, codingtables_run49, df_files_run49)
+```
+
+```{r}
+for(code in names(all_data)){
+  ## Graphs of paths
+  animals <- all_data[[code]]
+  temp <- codingtables[[code]]$codingtable %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  for(animal in names(animals)){
+    animal_source <- temp[temp$animal.x == animal, ]
+    print(plot_path(animals[[animal]], center = TRUE,
+              background = apparatus_image_path(darkside = "right")) + 
+            ggtitle(code, subtitle = paste0(code,
+                                                 "rat ", animal_source$animal.y,
+                                                 ", context ", animal_source$context,
+                                                 ", run ", animal_source$run)))
+  }
+}
+```
+
+## Graphs
+
+```{r}
+for(code in names(all_data)){
+  temp <- codingtables[[code]]$codingtable %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  
+  contextA <- filter_animals(all_data[[code]], temp$animal.x[temp$context == "A"])
+  contextB <- filter_animals(all_data[[code]], temp$animal.x[temp$context == "B"])
+
+  print(paper_heatmap(contextA, "A") +
+          ggtitle(code, subtitle = "Context A"))
+  print(paper_heatmap(contextB, "B") +
+          ggtitle(code, subtitle = "Context B"))
+  
+  duration <- max(contextA[[1]]$position$data$timestamp)
+  # weird shit - basically I want duration 1000 to have scale 25 and duration
+  # 3000 to have 75
+  scal <- round(25 * (duration)/1000)
+  if(scal < 1) scal <- 1
+  print(plot_area_presence(contextA, scale = scal, colors = c("grey60", "grey20")) +
+          guides(fill="none") +
+          ggtitle(code, subtitle = "Context A"))
+  print(plot_area_presence(contextB, scale = scal, colors = c("grey60", "grey20")) +
+          guides(fill="none") +
+          ggtitle(code, subtitle = "Context B"))
+}
+```

@@ -1,0 +1,101 @@
+---
+title: "combined-heatmaps"
+author: "Lukáš Hejtmánek"
+date: "30 3 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(fgu.avoidance)
+library(ggplot2)
+library(dplyr)
+library(here)
+source(here("functions/visualisations.R"))
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+heatmap_run_select <- c("hab1", "hab2", "hab3", "hab4", "hab5")
+```
+
+```{r loading data runs 43 44}
+load(here("temp/data_run4344.RData"))
+df_request_run4344 <- df_request_run4344 %>%
+  filter(group == "handled",
+         condition != "trial1") # want everything except trial 1
+## filter out data
+data_run4344 <- data_run4344[df_request_run4344$code]
+names(data_run4344) <- gsub("_handled", "", names(data_run4344))
+names(data_run4344)[names(data_run4344) == "trial0"] <- "hab5"
+codingtables_run4344 <- codingtables_run4344[df_request_run4344$code]
+names(codingtables_run4344) <- gsub("_handled", "", names(codingtables_run4344))
+names(codingtables_run4344)[names(codingtables_run4344) == "trial0"] <- "hab5"
+```
+
+```{r loading data run 47}
+load(here("temp/data_run47.RData"))
+df_files_run47 <- df_files_run47 %>%
+  filter(trial %in% heatmap_run_select)
+data_run47 <- data_run47[heatmap_run_select]
+codingtables_run47 <- codingtables_run47[heatmap_run_select]
+```
+
+```{r loading data run 49}
+load(here("temp/data_run49.RData"))
+df_files_run49 <- df_files_run49 %>%
+  filter(trial %in% heatmap_run_select)
+data_run49 <- data_run49[heatmap_run_select]
+codingtables_run49 <- codingtables_run47[heatmap_run_select]
+```
+
+
+```{r warning=FALSE}
+create_temp_selection <- function(code, codingtables, filetable){
+  codingtables[[code]]$codingtable %>%
+    left_join(filetable, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+}
+
+for(code in names(data_run4344)){
+  temp4344 <- create_temp_selection(code, codingtables_run4344, df_files_run4344)
+  temp47 <- create_temp_selection(code, codingtables_run47, df_files_run47)
+  temp49 <- create_temp_selection(code, codingtables_run49, df_files_run49)
+  
+  contextA4344 <- filter_animals(data_run4344[[code]], temp4344$animal.x[temp4344$context == "A"])
+  contextB4344 <- filter_animals(data_run4344[[code]], temp4344$animal.x[temp4344$context == "B"])
+
+  contextA47 <- filter_animals(data_run47[[code]], temp47$animal.x[temp47$context == "A"])
+  contextB47 <- filter_animals(data_run47[[code]], temp47$animal.x[temp47$context == "B"])
+  
+  contextA49 <- filter_animals(data_run49[[code]], temp49$animal.x[temp49$context == "A"])
+  contextB49 <- filter_animals(data_run49[[code]], temp49$animal.x[temp49$context == "B"])
+  
+  print(paper_heatmap(contextA4344, "A") + ggtitle(code, subtitle = "Context A run 43 44"))
+  ## A 47
+  print(paper_heatmap(contextA47, "A") + ggtitle(code, subtitle = "Context A run 47"))
+  contextA47 <- flip_x_positions(contextA47)
+  print(paper_heatmap(contextA47, "A") + ggtitle(code, subtitle = "Context A run 47 flipped"))
+  ## A 49
+  print(paper_heatmap(contextA49, "A") + ggtitle(code, subtitle = "Context A run 49"))
+  contextA49 <- flip_x_positions(contextA49)
+  print(paper_heatmap(contextA49, "A") + ggtitle(code, subtitle = "Context A run 49 flipped"))
+  ## Combined
+  contextA <- append(contextA4344, contextA47)
+  contextA <- append(contextA, contextA49)
+  print(paper_heatmap(contextA, "A") + ggtitle(code, subtitle = "Context A combined"))
+  
+  print(paper_heatmap(contextB4344, "B") + ggtitle(code, subtitle = "Context B run 43 44"))
+  ## B 47
+  print(paper_heatmap(contextB47, "B") + ggtitle(code, subtitle = "Context B run 47"))
+  contextB47 <- flip_x_positions(contextB47)
+  print(paper_heatmap(contextB47, "B") + ggtitle(code, subtitle = "Context B run 47 flipped"))
+  ## B 49
+  print(paper_heatmap(contextB49, "B") + ggtitle(code, subtitle = "Context B run 49"))
+  contextB47 <- flip_x_positions(contextB49)
+  print(paper_heatmap(contextB49, "B") + ggtitle(code, subtitle = "Context B run 49 flipped"))
+  ## Combined
+  contextB <- append(contextB4344, contextB47)
+  contextB <- append(contextB, contextB49)
+  print(paper_heatmap(contextB, "B") + ggtitle(code, subtitle = "Context B combined"))
+}
+```
+
+

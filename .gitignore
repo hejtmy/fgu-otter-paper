@@ -4,6 +4,7 @@
 # unles in docs
 !docs/*.html
 !data/**/*.csv
+temp/
 
 # History files
 .Rhistory

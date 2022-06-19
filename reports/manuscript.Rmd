@@ -1,0 +1,69 @@
+---
+title: "REPORT"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(here)
+library(fgu.avoidance)
+source(here("functions/visualisations.R"))
+
+knitr::opts_chunk$set(echo = TRUE)
+load(here("temp/data_run4344.RData"))
+all_data <- data_run4344
+codingtables <- codingtables_run4344
+df_request <- df_request_run4344
+df_files <- df_files_run4344
+rm(data_run4344, codingtables_run4344, df_request_run4344, df_files_run4344)
+```
+
+```{r, fig.width=5, fig.height=5}
+for(i in 1:nrow(df_request)){
+  ## Graphs of paths
+  line <- df_request[i, ]
+  if(!line$individual_analysis) next
+  animals <- all_data[[line$code]]
+  temp <- codingtables[[line$code]]$codingtable %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  for(animal in names(animals)){
+    animal_source <- temp[temp$animal.x == animal, ]
+    print(plot_path(animals[[animal]], center = TRUE,
+              background = apparatus_image_path(darkside = "left")) + 
+            ggtitle(line$code, subtitle = paste0("rat ", animal_source$animal.y, 
+                                                 ", context ", animal_source$context,
+                                                 ", run ", animal_source$run)))
+  }
+}
+```
+
+## Graphs
+
+```{r}
+for(i in 1:nrow(df_request)){
+  line <- df_request[i, ]
+  if(line$individual_analysis) next
+  temp <- codingtables[[line$code]]$codingtable %>%
+    left_join(df_files, by=c("folder", "file")) %>%
+    select(-c(source, folder, file))
+  
+  contextA <- filter_animals(all_data[[line$code]], temp$animal.x[temp$context == "A"])
+  contextB <- filter_animals(all_data[[line$code]], temp$animal.x[temp$context == "B"])
+
+  print(paper_heatmap(contextA, "A") + ggtitle(line$code, subtitle = "Context A"))
+  print(paper_heatmap(contextB, "B") + ggtitle(line$code, subtitle = "Context B"))
+  
+  duration <- max(contextA[[1]]$position$data$timestamp)
+  # weird shit - basically I want duration 1000 to have scale 25 and duration
+  # 3000 to have 75
+  scal <- round(25 * (duration)/1000)
+  print(plot_area_presence(contextA, scale = scal, colors = c("grey20", "grey60")) +
+          guides(fill="none") +
+          ggtitle(line$code, subtitle = "Context A"))
+  print(plot_area_presence(contextB, scale = scal, colors = c("grey20", "grey60")) +
+          guides(fill="none") +
+          ggtitle(line$code, subtitle = "Context B"))
+}
+```
