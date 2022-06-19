@@ -7,7 +7,6 @@ data_pth <- here("data/reveiw_run47/")
 folders <- list.dirs(data_pth, full.names = FALSE, recursive = FALSE)
 
 files <- list.files(data_pth, recursive = TRUE, full.names = TRUE)
-files <- files[grepl("//", files)]
 files <- gsub(data_pth, "", files)
 
 # df files has  columns "folder file trial animal context run"

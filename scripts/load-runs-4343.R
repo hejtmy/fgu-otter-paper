@@ -18,8 +18,8 @@ df_request_run4344 <- df_request_run4344 %>%
          individual_analysis = !is.na(analysis_1))%>%
   unite(code, condition, group, remove=FALSE)
 
-files <- list.files(data_pth, recursive = TRUE, full.names = TRUE)
-files <- files[grepl("//", files)]
+
+files <-list.files(data_pth, recursive = TRUE, full.names = TRUE)
 files <- gsub(data_pth, "", files)
 
 df_files_run4344 <- as.data.frame(str_split(files, "/", simplify = TRUE)) %>%

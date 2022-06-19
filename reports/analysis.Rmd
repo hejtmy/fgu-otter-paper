@@ -8,24 +8,59 @@ output: html_document
 ```{r}
 library(tidyverse)
 library(lmerTest)
+library(here)
+library(papaja)
 
-df_run4344 <- read.table("individual-results.csv", sep=",", header=TRUE) %>%
-  mutate(run = 4344) %>%
+df_run4344 <- read.csv(here("processed-results/individual-results-run4344.csv")) %>%
   select(-animal.y) %>%
   mutate(time_dark = time_left,
          time_light = time_right,
          crosses_dark = crosses_left,
          crosses_light = crosses_right)
-df_run47 <- read.table("individual-results-run47.csv", sep=",", header=TRUE) %>%
+df_run47 <- read.csv(here("processed-results/individual-results-run47.csv")) %>%
   select(-animal.y) %>%
   mutate(time_dark = time_right,
          time_light = time_left,
          crosses_dark = crosses_right,
          crosses_light = crosses_left)
 
-df_results <- bind_rows(df_run4344, df_run47) %>%
+df_run49 <- read.csv(here("processed-results/individual-results-run49.csv")) %>%
+  select(-animal.y) %>%
+  mutate(time_dark = time_right,
+         time_light = time_left,
+         crosses_dark = crosses_right,
+         crosses_light = crosses_left)
+
+df_results <- bind_rows(df_run4344, df_run47, df_run49) %>%
   filter(!grepl("trial", trial),
-         trial != "hab6")
+         trial != "hab6") %>%
+  mutate(run = as.factor(run),
+         animal_run = str_glue("{animal.x}-{run}"))
+```
+
+## 0
+
+```{r}
+df_results %>%
+  select(run, context, time_dark) %>%
+  pivot_longer(-c(context, run)) %>%
+  mutate(value = replace_na(value, 0)) %>%
+  ggplot(aes(as.factor(run), value, fill=context)) + geom_boxplot() +
+  labs(title = "time spent in the dark section in different contexts and in different runs",
+       x = "Run", y ="Time spent in the dark section")
+```
+
+```{r}
+df_results %>%
+  select(run, context, crosses_dark) %>%
+  pivot_longer(-c(context, run)) %>%
+  mutate(value = replace_na(value, 0)) %>%
+  ggplot(aes(as.factor(run), value, fill=context)) + geom_boxplot() +
+  labs(title = "Number of crosses to the dark section in different contexts and in different runs",
+       x = "Run", y ="Number of crosses")
+```
+
+```{r}
 ```
 
 ## 1 
@@ -35,34 +70,47 @@ df_results <- bind_rows(df_run4344, df_run47) %>%
 
 ```{r}
 df_results %>%
-  select(context, time_dark, time_light) %>%
-  pivot_longer(-context) %>%
+  select(context, trial, time_dark) %>%
+  pivot_longer(-c(context, trial)) %>%
   mutate(value = replace_na(value, 0)) %>%
-  ggplot(aes(value, fill=name)) + geom_histogram(binwidth = 30) + facet_wrap(~context)
-  
+  ggplot(aes(trial, value, fill=context)) +
+    geom_boxplot()
+
 df_results %>%
-  select(context, crosses_dark) %>%
-  pivot_longer(-context) %>%
+  select(context, trial, crosses_dark) %>%
+  pivot_longer(-c(context, trial)) %>%
   mutate(value = replace_na(value, 0)) %>%
-  ggplot(aes(value, fill=name)) + geom_histogram(binwidth = 2) + facet_wrap(~context)
+  ggplot(aes(trial, value, fill=context)) +
+    geom_boxplot()
 ```
+
+Overall it seems that the animals in context B are behaving slightly differently - less crosses and less time spent in the dark area. But this can be generally due to the animal nature, so a mixed effect model taking into consideration animals personality is necessary. 
+
 
 ```{r}
-summary(lmer(time_dark ~ context + (1|animal.x), data = df_results))
-summary(lmer(crosses_dark ~ context + (1|animal.x), data = df_results))
+lmer(time_dark ~ context*run + (1|animal_run), data = df_results) %>% summary()
+lmer(crosses_dark ~ context*run + (1|animal_run), data = df_results) %>% summary()
 ```
 
-Linear mixed effect model modellin    g the time spent in the dark box as with context as a fixed factor and animal as a random factor showed no significant effect of context. Same model predicting number of crosses to the dark side also demostrated no effect of context.
+Linear mixed effect model modelling the time spent in the dark box as with context as a fixed factor and animal as a random factor showed no significant effect of context. But the same model predicting number of crosses to the dark side demostrated effect of context, with animals in context B crossing less.
 
 ## 2
 2) Srovnání habituačních sezení, která proběhla ve stejném kontextu (tj. Hab 1 vs Hab 3; Hab 2 vs Hab 4).
 - "Každé zvíře bylo stejnému kontextu habituováno během klasických habituačních sezení dvakrát, lišil se počet transferů a čas strávený ve tmavé části mezi těmito sezeními?"
 - Chceme zjistit, zda je chování napříš habituacemi stabilní.
 ```{r}
+df_results %>%
+  filter(trial!="hab5") %>%
+  lmer(time_dark ~ context*trial + (1|animal_run), data = .) %>%
+  summary()
 
+df_results %>%
+  filter(trial!="hab5") %>%
+  lmer(crosses_dark ~ context*trial + (1|animal_run), data = .) %>%
+  summary()
 ```
 
-
+Modelling the interaction efffect between context and habituation on time spend in the dark as fixed effect and animal as a random effect, there was no significant predictor in either trial 
 
 3) Srovnání habituace před pairing session (Hab 5) s habituačním sezení před recall (Hab 6).
 - "Ovlivnil stresující stimulus (šok) prožitý ve tmavé části arénky čas strávený ve tmavé části a počet transferů mezi částmi arénky?"
@@ -71,7 +119,6 @@ Linear mixed effect model modellin    g the time spent in the dark box as with c
 ```{r}
 
 ```
-
 
 4) Srovnání počtu responders (zvířata, co během recall session utekla na zvuk v daném časovém intervalu) mezi testovací skupinou (dostali zvuk a šok v pairing session) a kontrolní skupinou (během pairing session dostali pouze zvuk).
 - Tady bychom spíš potřebovali radu, jak něco takového vyhodnotit. V kontrolní skupině nikdy neuteklo žádné zvíře, takže v posledním runu to např. vychází, že uteklo 7 z 11 testovacích zvířat vs 0 z 6 kontrolních. My jsme použili Fisher's exact test.
@@ -83,7 +130,6 @@ Linear mixed effect model modellin    g the time spent in the dark box as with c
 5) Srovnání času stráveného ve tmavé části a transferů mezi responders, non-responders a controls během habituačního sezení předcházejícího recall (tj. Hab 6).
 - "Chovali se to-be responders, to-be non-responders a controls během posledního habituačního sezení stejně?"
 - Tady bychom také potřebovali radu, jaký test použít. Bohužel u sebe aktuálně nemám výsledná data (kdo byl responder, non-responder a kontrola - holky mi to bohužel zapomněly poslat) a budu je mít až v pondělí.
-
 
 ```{r}
 
