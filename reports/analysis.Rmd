@@ -1,0 +1,90 @@
+---
+title: "analysis"
+author: "Lukáš Hejtmánek"
+date: '2022-06-18'
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(lmerTest)
+
+df_run4344 <- read.table("individual-results.csv", sep=",", header=TRUE) %>%
+  mutate(run = 4344) %>%
+  select(-animal.y) %>%
+  mutate(time_dark = time_left,
+         time_light = time_right,
+         crosses_dark = crosses_left,
+         crosses_light = crosses_right)
+df_run47 <- read.table("individual-results-run47.csv", sep=",", header=TRUE) %>%
+  select(-animal.y) %>%
+  mutate(time_dark = time_right,
+         time_light = time_left,
+         crosses_dark = crosses_right,
+         crosses_light = crosses_left)
+
+df_results <- bind_rows(df_run4344, df_run47) %>%
+  filter(!grepl("trial", trial),
+         trial != "hab6")
+```
+
+## 1 
+1) Srovnání kontextu A a B vrámci jednotlivých habituačních dnů
+- "Lišil se čas strávený ve tmavé části a počet transferů mezi kontextem A a B?"
+- Chceme vědět, zda se zvířata nechovají v kontextech A a B výrazně jinak.
+
+```{r}
+df_results %>%
+  select(context, time_dark, time_light) %>%
+  pivot_longer(-context) %>%
+  mutate(value = replace_na(value, 0)) %>%
+  ggplot(aes(value, fill=name)) + geom_histogram(binwidth = 30) + facet_wrap(~context)
+  
+df_results %>%
+  select(context, crosses_dark) %>%
+  pivot_longer(-context) %>%
+  mutate(value = replace_na(value, 0)) %>%
+  ggplot(aes(value, fill=name)) + geom_histogram(binwidth = 2) + facet_wrap(~context)
+```
+
+```{r}
+summary(lmer(time_dark ~ context + (1|animal.x), data = df_results))
+summary(lmer(crosses_dark ~ context + (1|animal.x), data = df_results))
+```
+
+Linear mixed effect model modellin    g the time spent in the dark box as with context as a fixed factor and animal as a random factor showed no significant effect of context. Same model predicting number of crosses to the dark side also demostrated no effect of context.
+
+## 2
+2) Srovnání habituačních sezení, která proběhla ve stejném kontextu (tj. Hab 1 vs Hab 3; Hab 2 vs Hab 4).
+- "Každé zvíře bylo stejnému kontextu habituováno během klasických habituačních sezení dvakrát, lišil se počet transferů a čas strávený ve tmavé části mezi těmito sezeními?"
+- Chceme zjistit, zda je chování napříš habituacemi stabilní.
+```{r}
+
+```
+
+
+
+3) Srovnání habituace před pairing session (Hab 5) s habituačním sezení před recall (Hab 6).
+- "Ovlivnil stresující stimulus (šok) prožitý ve tmavé části arénky čas strávený ve tmavé části a počet transferů mezi částmi arénky?"
+- Trávila zvířata signifikantně méně času ve tmavé části např. v důsledků contextual fear?
+
+```{r}
+
+```
+
+
+4) Srovnání počtu responders (zvířata, co během recall session utekla na zvuk v daném časovém intervalu) mezi testovací skupinou (dostali zvuk a šok v pairing session) a kontrolní skupinou (během pairing session dostali pouze zvuk).
+- Tady bychom spíš potřebovali radu, jak něco takového vyhodnotit. V kontrolní skupině nikdy neuteklo žádné zvíře, takže v posledním runu to např. vychází, že uteklo 7 z 11 testovacích zvířat vs 0 z 6 kontrolních. My jsme použili Fisher's exact test.
+
+```{r}
+
+```
+
+5) Srovnání času stráveného ve tmavé části a transferů mezi responders, non-responders a controls během habituačního sezení předcházejícího recall (tj. Hab 6).
+- "Chovali se to-be responders, to-be non-responders a controls během posledního habituačního sezení stejně?"
+- Tady bychom také potřebovali radu, jaký test použít. Bohužel u sebe aktuálně nemám výsledná data (kdo byl responder, non-responder a kontrola - holky mi to bohužel zapomněly poslat) a budu je mít až v pondělí.
+
+
+```{r}
+
+```
